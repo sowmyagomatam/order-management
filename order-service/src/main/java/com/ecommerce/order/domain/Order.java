@@ -26,6 +26,7 @@ public class Order {
     @Column(name = "customer_id", nullable = false)
     private String customerId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name="order_status", nullable = false)
     private OrderStatus status;
 
