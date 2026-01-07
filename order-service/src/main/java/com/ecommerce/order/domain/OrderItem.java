@@ -2,8 +2,10 @@ package com.ecommerce.order.domain;
 
 import com.google.common.base.Preconditions;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
@@ -11,6 +13,8 @@ import java.math.BigDecimal;
 @Table(name="order_item")
 @Builder
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 /**
  * Represents a single line of item in an Order
  *
