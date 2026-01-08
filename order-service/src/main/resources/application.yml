@@ -1,6 +1,17 @@
 spring:
   application:
     name: order-service
+  jpa:
+    show-sql: true
+    properties:
+      format-sql: true
+    open-in-view: false
+
 
 server:
   port: 8081
+
+logging:
+  level:
+    com.ecommerce.order: debug
+    org.springframework.web: info
