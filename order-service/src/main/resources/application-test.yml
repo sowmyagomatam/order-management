@@ -1,0 +1,33 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    com.ecommerce.order: INFO
+    org.hibernate.SQL: WARN
+    org.springframework: WARN
+
+---
+info:
+  profile: test
+  database: H2 or Testcontainers
+  note: "Test mode - optimized for speed"
