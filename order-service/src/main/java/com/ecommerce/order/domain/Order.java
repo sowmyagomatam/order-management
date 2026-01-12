@@ -28,7 +28,8 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(name="order_status", nullable = false)
-    private OrderStatus status;
+    @Builder.Default
+    private OrderStatus status = OrderStatus.PENDING;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "order_id")
@@ -71,13 +72,11 @@ public class Order {
         if (id == null){
             id = UUID.randomUUID().toString();
         }
-        if(status == null){
-            this.status = OrderStatus.PENDING;
-        }
         if(createdAt == null){
             this.createdAt = Instant.now();
         }
         this.updatedAt = Instant.now();
+        reCalculateTotal();
 
     }
 
