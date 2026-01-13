@@ -99,5 +99,10 @@ public class OrderRepositoryTest {
 
     }
 
+    @Test
+    void shouldCountByCustomers(){
+
+    }
+
 
 }

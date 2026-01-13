@@ -11,14 +11,18 @@ import java.util.List;
 public class OrderUtils {
 
     public static Order createTestOrder(String customerId, List<OrderItem> items) {
+       return createTestOrder(customerId, items, createAddress());
+    }
+
+    public static Order createTestOrder(String customerId, List<OrderItem> items, Address shippingAddress) {
         Order order = Order.builder()
                 .customerId(customerId)
-                .shippingAddress(createAddress())
-                .billingAddress(createAddress())
+                .shippingAddress(shippingAddress)
+                .billingAddress(shippingAddress)
                 .status(OrderStatus.PENDING)
-                .items(items)
+                //  .items(items)
                 .build();
-
+        items.forEach(order::addItem);
         return order;
     }
 

@@ -67,6 +67,15 @@ public class Order {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancelled_by")
+    private String cancelledBy;
+
     @PrePersist
     private void beforeSave() {
         if (id == null){
@@ -126,12 +135,16 @@ public class Order {
         this.updatedAt = Instant.now();
     }
 
-    public void cancel(){
-        if(!status.isCancellable()){
-            throw new IllegalStateException("Cannot cancel order in status " + status);
-        } else {
-            this.status = OrderStatus.CANCELLED;
+    public void cancel(String reason, String cancelledBy){
+        if (!status.isCancellable()) {
+            throw new IllegalStateException(
+                    "Cannot cancel order in status: " + status +
+                            ". Orders can only be cancelled before shipping.");
         }
+        this.status = OrderStatus.CANCELLED;
+        this.cancellationReason = reason;
+        this.cancelledAt = Instant.now();
+        this.cancelledBy = cancelledBy;
     }
 
     public Integer getItemCount(){
