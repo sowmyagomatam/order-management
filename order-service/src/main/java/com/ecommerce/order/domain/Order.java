@@ -28,7 +28,8 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(name="order_status", nullable = false)
-    private OrderStatus status;
+    @Builder.Default
+    private OrderStatus status = OrderStatus.PENDING;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "order_id")
@@ -66,18 +67,25 @@ public class Order {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancelled_by")
+    private String cancelledBy;
+
     @PrePersist
     private void beforeSave() {
         if (id == null){
             id = UUID.randomUUID().toString();
         }
-        if(status == null){
-            this.status = OrderStatus.PENDING;
-        }
         if(createdAt == null){
             this.createdAt = Instant.now();
         }
         this.updatedAt = Instant.now();
+        reCalculateTotal();
 
     }
 
@@ -127,12 +135,16 @@ public class Order {
         this.updatedAt = Instant.now();
     }
 
-    public void cancel(){
-        if(!status.isCancellable()){
-            throw new IllegalStateException("Cannot cancel order in status " + status);
-        } else {
-            this.status = OrderStatus.CANCELLED;
+    public void cancel(String reason, String cancelledBy){
+        if (!status.isCancellable()) {
+            throw new IllegalStateException(
+                    "Cannot cancel order in status: " + status +
+                            ". Orders can only be cancelled before shipping.");
         }
+        this.status = OrderStatus.CANCELLED;
+        this.cancellationReason = reason;
+        this.cancelledAt = Instant.now();
+        this.cancelledBy = cancelledBy;
     }
 
     public Integer getItemCount(){

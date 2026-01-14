@@ -4,14 +4,14 @@ spring:
       on-profile: test
 
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    driver-class-name: org.postgresql.Driver
+    username: test
+    password: test
 
   jpa:
     hibernate:
       ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
     properties:
       hibernate:
@@ -29,5 +29,5 @@ logging:
 ---
 info:
   profile: test
-  database: H2 or Testcontainers
-  note: "Test mode - optimized for speed"
+  database: Postgresql Testcontainers
+  note: "For integration tests - with postgresql"

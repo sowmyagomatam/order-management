@@ -32,7 +32,7 @@ public class OrderItem {
     private String productName;
     //Snapshot of product at purchase time
     @Column(nullable = false)
-    private String produceSku;
+    private String productSku;
     @Column(nullable = false)
     private Integer quantity;
     @Column(nullable = false, precision = 10, scale = 2)
@@ -48,9 +48,21 @@ public class OrderItem {
     @PrePersist
     @PreUpdate
     private void calculateSubtotal() {
-        if (unitPrice != null && quantity != null) {
-            this.subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        this.subtotal =  getSubtotal();
+    }
+
+    public BigDecimal getSubtotal() {
+        if (this.subtotal == null) {
+            return calculateSubtotalValue();
         }
+        return subtotal;
+    }
+
+    private BigDecimal calculateSubtotalValue() {
+        if (unitPrice != null && quantity != null && quantity > 0) {
+            return unitPrice.multiply(BigDecimal.valueOf(quantity));
+        }
+        return BigDecimal.ZERO;
     }
 
     public void validate(){
