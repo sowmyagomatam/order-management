@@ -5,12 +5,15 @@ import com.ecommerce.order.domain.OrderItem;
 import com.ecommerce.order.domain.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Builder;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+@Data
+@Builder
 public class OrderResponse {
     private String id;
     private String customerId;

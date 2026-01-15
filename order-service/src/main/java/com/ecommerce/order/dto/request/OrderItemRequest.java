@@ -24,7 +24,7 @@ public class OrderItemRequest {
     @NotBlank(message = "Product SKU is required")
     private String productSku;
 
-    @NotBlank(message = "Quatntity is required")
+    @NotBlank(message = "Quantity is required")
     @Min(1)
     private Integer quantity;
 
