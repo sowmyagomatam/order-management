@@ -2,6 +2,7 @@ package com.ecommerce.order.service;
 
 import com.ecommerce.order.domain.Order;
 import com.ecommerce.order.domain.OrderItem;
+import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.dto.request.OrderRequest;
 import com.ecommerce.order.dto.response.OrderResponse;
 import com.ecommerce.order.exception.OrderNotFoundException;
@@ -56,5 +57,15 @@ public class OrderService {
     public List<OrderResponse> getOrdersByCustomer(String customerId){
         log.debug("Fetching orders for customer: {}", customerId);
         return orderMapper.toResponseList(orderRepository.findByCustomerId(customerId));
+    }
+
+    public OrderResponse updateOrderStatus(String orderId, OrderStatus orderStatus){
+        return orderRepository.findById(orderId)
+                .map(order -> {
+                    order.updateStatus(orderStatus);
+                return orderMapper.toOrderResponse(order);})
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+
     }
 }
