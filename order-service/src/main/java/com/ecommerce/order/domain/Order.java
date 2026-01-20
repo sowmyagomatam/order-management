@@ -1,5 +1,6 @@
 package com.ecommerce.order.domain;
 
+import com.ecommerce.order.exception.InvalidOrderStateException;
 import com.google.common.base.Preconditions;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -130,7 +131,11 @@ public class Order {
         if(this.status.canTransitionTo(newStatus)){
             this.status = newStatus;
         } else {
-            throw new IllegalStateException("Cannot update status to " + newStatus  + " from " + status);
+            throw new InvalidOrderStateException(
+                    this.id,
+                    this.status,
+                    newStatus
+            );
         }
         this.updatedAt = Instant.now();
     }

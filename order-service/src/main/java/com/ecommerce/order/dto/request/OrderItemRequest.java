@@ -3,6 +3,7 @@ package com.ecommerce.order.dto.request;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,11 +25,11 @@ public class OrderItemRequest {
     @NotBlank(message = "Product SKU is required")
     private String productSku;
 
-    @NotBlank(message = "Quantity is required")
-    @Min(1)
+    @NotNull(message = "Quantity is required")
+    @Min(value = 1, message = "Quantity must be atleast 1")
     private Integer quantity;
 
-    @NotBlank(message =  "Product Id is required")
+    @NotNull(message =  "Product Id is required")
     @Min(value = 0, message = "Unit price must be positive")
     private BigDecimal unitPrice;
 

@@ -124,7 +124,7 @@ public class OrderServiceTest {
 
         assertThatThrownBy(() ->  orderService.getOrder("order123"))
                 .isInstanceOf(OrderNotFoundException.class)
-                .hasMessage("Order not found with Id order123");
+                .hasMessage("Order not found with Id: order123");
     }
 
     @Test

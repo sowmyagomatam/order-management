@@ -1,5 +1,6 @@
 package com.ecommerce.order.domain;
 
+import com.ecommerce.order.exception.InvalidOrderStateException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -143,7 +144,7 @@ public class OrderTest {
                 List.of( createOrderItem("prod-1", 1, "10.00")));
         order.updateStatus(INVENTORY_RESERVED);
         assertThatThrownBy( () ->
-            order.updateStatus(SHIPPED)).isInstanceOf(IllegalStateException.class);
+            order.updateStatus(SHIPPED)).isInstanceOf(InvalidOrderStateException.class);
     }
 
     @Test
