@@ -18,6 +18,7 @@
     <description>An order management system</description>
     <modules>
         <module>order-service</module>
+        <module>inventory-service</module>
     </modules>
     <packaging>pom</packaging>
 
