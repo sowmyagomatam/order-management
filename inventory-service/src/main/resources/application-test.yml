@@ -1,0 +1,33 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: test
+    password: test
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    com.ecommerce.order: INFO
+    org.hibernate.SQL: WARN
+    org.springframework: WARN
+
+---
+info:
+  profile: test
+  database: Postgresql Testcontainers
+  note: "For integration tests - with postgresql"

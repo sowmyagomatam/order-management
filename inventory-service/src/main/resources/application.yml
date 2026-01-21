@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: inventory-service
+  jpa:
+    show-sql: true
+    properties:
+      format-sql: true
+    open-in-view: false
+
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.ecommerce.inventory: debug
+    org.springframework.web: info
