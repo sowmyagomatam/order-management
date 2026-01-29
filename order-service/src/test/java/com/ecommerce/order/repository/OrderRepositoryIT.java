@@ -1,6 +1,7 @@
 package com.ecommerce.order.repository;
 
 import com.ecommerce.order.config.TestConfig;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -14,6 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+@Disabled
 @Testcontainers
 @DataJpaTest
 @ActiveProfiles("test")

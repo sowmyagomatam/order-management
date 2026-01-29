@@ -1,11 +1,8 @@
 package com.ecommerce.order.exception;
 
-public class OrderNotFoundException extends RuntimeException  {
+public class OrderNotFoundException extends OrderServiceException  {
     public OrderNotFoundException(String orderId) {
-        super("Order not found with Id: " + orderId);
-    }
-
-    public OrderNotFoundException(String orderId, Throwable cause) {
-        super("Order not found with Id: " + orderId, cause);
+        super("Order not found with Id: " + orderId,
+                "ORDER_NOT_FOUND");
     }
 }
