@@ -6,8 +6,10 @@ import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.dto.request.OrderRequest;
 import com.ecommerce.order.dto.response.OrderResponse;
 import com.ecommerce.order.exception.OrderNotFoundException;
+import com.ecommerce.order.mapper.OrderEventMapper;
 import com.ecommerce.order.mapper.OrderItemMapper;
 import com.ecommerce.order.mapper.OrderMapper;
+import com.ecommerce.order.messaging.OrderEventProducer;
 import com.ecommerce.order.repository.OrderRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,9 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
+    private final OrderEventProducer orderEventProducer;
+    private final OrderEventMapper orderEventMapper;
+
 
     @Transactional
     public OrderResponse createOrder(OrderRequest orderRequest){
@@ -39,6 +44,15 @@ public class OrderService {
         order.validate();
         Order savedOrder = orderRepository.save(order);
         log.info("Saved order successfully");
+
+        //publish order created event to kafka
+        try {
+            orderEventProducer.publishOrderCreated(
+                    orderEventMapper.toOrderCreatedEvent(savedOrder));
+            log.info("OrderCreatedEvent published for order: {}", savedOrder.getId());
+        }catch (Exception e){
+            log.error("Failed to publish OrderCreatedEvent for order: {}", savedOrder.getId(), e);
+        }
         return orderMapper.toOrderResponse(savedOrder);
     }
 

@@ -24,14 +24,6 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all
-      retries: 3
-      properties:
-        linger.ms: 1
-        spring.json.type.mapping: orderCreated:com.ecommerce.common.dto.event.OrderCreatedEvent
 
 ---
 # Profile info for visibility
