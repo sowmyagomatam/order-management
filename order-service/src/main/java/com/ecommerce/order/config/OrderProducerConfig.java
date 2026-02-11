@@ -1,6 +1,6 @@
 package com.ecommerce.order.config;
 
-import com.ecommerce.common.event.OrderCreatedEvent;
+import com.ecommerce.common.dto.event.OrderCreatedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -19,7 +19,7 @@ import java.util.Map;
 @Slf4j
 public class OrderProducerConfig {
 
-    @Value("{spring.kafka.bootstrap-servers}")
+    @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
     /**
      * Producer factory for order created event

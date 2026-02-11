@@ -1,4 +1,4 @@
-package com.ecommerce.common.event;
+package com.ecommerce.common.dto.event;
 
 import java.math.BigDecimal;
 import java.time.Instant;
