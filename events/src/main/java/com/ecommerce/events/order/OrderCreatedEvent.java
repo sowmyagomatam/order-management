@@ -1,4 +1,5 @@
-package com.ecommerce.common.dto.event;
+package com.ecommerce.events.order;
+
 
 import java.math.BigDecimal;
 import java.time.Instant;

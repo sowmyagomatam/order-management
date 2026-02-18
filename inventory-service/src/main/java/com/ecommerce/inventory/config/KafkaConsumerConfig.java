@@ -1,6 +1,6 @@
 package com.ecommerce.inventory.config;
 
-import com.ecommerce.common.dto.event.OrderCreatedEvent;
+import com.ecommerce.events.order.OrderCreatedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;

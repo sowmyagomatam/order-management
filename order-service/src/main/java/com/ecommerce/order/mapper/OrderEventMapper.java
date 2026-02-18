@@ -1,6 +1,6 @@
 package com.ecommerce.order.mapper;
 
-import com.ecommerce.common.dto.event.OrderCreatedEvent;
+import com.ecommerce.events.order.OrderCreatedEvent;
 import com.ecommerce.order.domain.Order;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
