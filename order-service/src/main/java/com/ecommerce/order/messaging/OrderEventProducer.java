@@ -1,6 +1,6 @@
 package com.ecommerce.order.messaging;
 
-import com.ecommerce.common.dto.event.OrderCreatedEvent;
+import com.ecommerce.events.order.OrderCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
