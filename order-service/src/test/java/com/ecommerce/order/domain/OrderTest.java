@@ -160,7 +160,7 @@ public class OrderTest {
         Order order = createTestOrder("customer123",
                 List.of( createOrderItem("prod-1", 1, "10.00")));
         order.updateStatus(INVENTORY_RESERVED);
-        order.cancel("User cancelled", "User");
+        order.cancel(CancellationReason.CUSTOMER_REQUEST, "User");
         assertThat(order.getStatus()).isEqualTo(CANCELLED);
     }
 
@@ -173,7 +173,7 @@ public class OrderTest {
         order.updateStatus(PAYMENT_COMPLETED);
         order.updateStatus(CONFIRMED);
         order.updateStatus(SHIPPED);
-        assertThatThrownBy(() -> order.cancel("Cancelled by user", "user"))
+        assertThatThrownBy(() -> order.cancel(CancellationReason.CUSTOMER_REQUEST, "user"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
