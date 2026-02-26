@@ -14,8 +14,8 @@ public class InventoryEventProducer {
 
     public static final String RESERVED_TOPIC = "inventory.reserved";
     private static final String FAILED_TOPIC = "inventory.reservation-failed";
-    KafkaTemplate<String, InventoryReservedEvent> reservedEventKafkaTemplate;
-    KafkaTemplate<String, InventoryReservationFailedEvent> failedEventKafkaTemplate;
+    private final KafkaTemplate<String, InventoryReservedEvent> reservedEventKafkaTemplate;
+    private final KafkaTemplate<String, InventoryReservationFailedEvent> failedEventKafkaTemplate;
 
     public void publishInventoryReservedEvent(InventoryReservedEvent event){
         log.info("Publishing InventoryReservedEvent for order: {}", event.orderId());

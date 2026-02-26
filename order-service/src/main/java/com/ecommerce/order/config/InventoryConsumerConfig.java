@@ -42,9 +42,9 @@ public class InventoryConsumerConfig {
         props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
 
         // JSON Deserializer settings
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.ecommerce.events.inventory");
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, InventoryReservedEvent.class);
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+        //props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        //props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, InventoryReservedEvent.class); we have different events now
+       // props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
         // Offset management
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -64,10 +64,14 @@ public class InventoryConsumerConfig {
      */
     @Bean
     public ConsumerFactory<String, InventoryReservedEvent> inventoryReservedConsumerFactory() {
+        JsonDeserializer<InventoryReservedEvent> deserializer =
+                new JsonDeserializer<>(InventoryReservedEvent.class, false);
+        deserializer.addTrustedPackages("*");
+        deserializer.setUseTypeHeaders(false);
         return new DefaultKafkaConsumerFactory<>(
                 consumerConfigs(),
                 new StringDeserializer(),
-                new JsonDeserializer<>(InventoryReservedEvent.class, false)
+                deserializer
         );
     }
 
@@ -98,10 +102,15 @@ public class InventoryConsumerConfig {
 
     @Bean
     public ConsumerFactory<String, InventoryReservationFailedEvent> inventoryReservedFailedEventConsumerFactory() {
+        JsonDeserializer<InventoryReservationFailedEvent> deserializer =
+                new JsonDeserializer<>(InventoryReservationFailedEvent.class, false);
+        deserializer.addTrustedPackages("*");
+        deserializer.setUseTypeHeaders(false);
+
         return new DefaultKafkaConsumerFactory<>(
                 consumerConfigs(),
                 new StringDeserializer(),
-                new JsonDeserializer<>(InventoryReservationFailedEvent.class, false)
+                deserializer
         );
     }
 

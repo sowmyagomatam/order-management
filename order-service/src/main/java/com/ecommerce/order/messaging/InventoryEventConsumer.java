@@ -43,17 +43,11 @@ public class InventoryEventConsumer {
 
         try {
             // Find the order
-            Order order = orderRepository.findById(event.orderId())
-                    .orElseThrow(() -> new RuntimeException("Order not found: " + event.orderId()));
+            orderRepository.findById(event.orderId())
+                            .ifPresentOrElse(order -> confirmInventoryReserved(event, order),
+                                    () -> handleMissingOrder(event.orderId()));
 
-            log.info("Order {} current status: {}", event.orderId(), order.getStatus());
-
-            // Update order status to INVENTORY_RESERVED
-            order.updateStatus(OrderStatus.INVENTORY_RESERVED);
-            orderRepository.save(order);
-
-            log.info("Order {} status updated to INVENTORY_RESERVED. Reserved items: {}",
-                    event.orderId(), event.reservedItems().size());
+            ;
 
             // Acknowledge message
             if (acknowledgment != null) {
@@ -66,6 +60,17 @@ public class InventoryEventConsumer {
                     event.orderId(), e);
             // Don't acknowledge - will retry
         }
+    }
+
+    private void confirmInventoryReserved(InventoryReservedEvent event, Order order) {
+        log.info("Order {} current status: {}", event.orderId(), order.getStatus());
+
+        // Update order status to INVENTORY_RESERVED
+        order.updateStatus(OrderStatus.INVENTORY_RESERVED);
+        orderRepository.save(order);
+
+        log.info("Order {} status updated to INVENTORY_RESERVED. Reserved items: {}",
+                event.orderId(), event.reservedItems().size());
     }
 
     /**
@@ -88,26 +93,12 @@ public class InventoryEventConsumer {
 
         try {
             // Find the order
-            Order order = orderRepository.findById(event.orderId())
-                    .orElseThrow(() -> new RuntimeException("Order not found: " + event.orderId()));
+           orderRepository.findById(event.orderId())
+                   .ifPresentOrElse(order -> confirmInventoryReservationFailed(event, order),
+                           () ->  handleMissingOrder(event.orderId()));
 
-            log.info("Order {} current status: {}", event.orderId(), order.getStatus());
 
-            // Update order status to OUT_OF_STOCK
-            order.cancel(CancellationReason.OUT_OF_STOCK, "System");
-            orderRepository.save(order);
 
-            log.warn("Order {} cancelled due to insufficient stock. Reason: {}. Failed items: {}",
-                    event.orderId(), event.reason(), event.failedItems().size());
-
-            // Log details of failed items
-            event.failedItems().forEach(item -> {
-                log.warn("  - Product {}: {} (Requested: {}, Available: {})",
-                        item.productSku(),
-                        item.reason(),
-                        item.requestedQuantity(),
-                        item.availableQuantity());
-            });
 
             // Acknowledge message
             if (acknowledgment != null) {
@@ -120,5 +111,31 @@ public class InventoryEventConsumer {
                     event.orderId(), e);
             // Don't acknowledge - will retry
         }
+    }
+
+    private void confirmInventoryReservationFailed(InventoryReservationFailedEvent event, Order order){
+        log.info("Order {} current status: {}", event.orderId(), order.getStatus());
+
+        // Update order status to OUT_OF_STOCK
+        order.cancel(CancellationReason.OUT_OF_STOCK, "System");
+        orderRepository.save(order);
+
+        log.warn("Order {} cancelled due to insufficient stock. Reason: {}. Failed items: {}",
+                event.orderId(), event.reason(), event.failedItems().size());
+
+        // Log details of failed items
+        event.failedItems().forEach(item -> {
+            log.warn("  - Product {}: {} (Requested: {}, Available: {})",
+                    item.productSku(),
+                    item.reason(),
+                    item.requestedQuantity(),
+                    item.availableQuantity());
+        });
+    }
+
+    private void handleMissingOrder(String orderId) {
+        log.warn("Order {} not found. Event will be acknowledged and skipped. " +
+                        "This can happen if the order was deleted or database was reset.",
+                orderId);
     }
 }
