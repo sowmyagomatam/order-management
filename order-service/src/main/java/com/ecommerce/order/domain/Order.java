@@ -69,7 +69,8 @@ public class Order {
     private Instant updatedAt;
 
     @Column(name = "cancellation_reason")
-    private String cancellationReason;
+    @Enumerated(EnumType.STRING)
+    private CancellationReason cancellationReason;
 
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
@@ -140,7 +141,7 @@ public class Order {
         this.updatedAt = Instant.now();
     }
 
-    public void cancel(String reason, String cancelledBy){
+    public void cancel(CancellationReason reason, String cancelledBy){
         if (!status.isCancellable()) {
             throw new IllegalStateException(
                     "Cannot cancel order in status: " + status +
