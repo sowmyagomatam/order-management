@@ -16,7 +16,6 @@ import java.util.UUID;
 @Builder
 public class Payment {
     @Id
-    @Column(name = "payment_id")
     private String id;
 
     @Column(name = "order_id", nullable = false)
