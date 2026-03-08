@@ -14,15 +14,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.sql.Time;
 import java.util.Optional;
+import java.util.concurrent.*;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
+    public static final int GATEWAY_TIMEOUT = 5;
     private final PaymentRepository paymentRepository;
     private final PaymentGateway paymentGateway;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Override
     @Transactional
@@ -40,7 +44,10 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentMethod(createPaymentCommand.paymentMethod())
                 .cardLastFourDigits(createPaymentCommand.cardLastFourDigits())
                 .build();
-        return paymentRepository.save(payment);
+        Payment saved = paymentRepository.save(payment);
+        log.info("Payment created: {} for order: {}", saved.getId(), saved.getOrderId());
+
+        return saved;
     }
 
     @Override
@@ -61,31 +68,49 @@ public class PaymentServiceImpl implements PaymentService {
 
         // Mark as processing
         payment.markAsProcessing();
-        paymentRepository.save(payment);
-
+        Payment processing = paymentRepository.saveAndFlush(payment);
+        log.debug("Payment {} marked as processing", processing.getId());
         try {
             // Call payment gateway
-            PaymentResult result = paymentGateway.processPayment(
-                    payment.getAmount(),
-                    payment.getPaymentMethod()
-            );
+            PaymentResult result = executeWithTimeout(() ->
+                    paymentGateway.processPayment(
+                            payment.getAmount(),
+                            payment.getPaymentMethod()
+                    ));
 
             if (result.success()) {
-                payment.markAsCompleted(result.paymentReference());
+                processing.markAsCompleted(result.paymentReference());
                 log.info("Payment {} completed. Reference: {}",
-                        payment.getId(), result.paymentReference());
+                        processing.getId(), result.paymentReference());
             } else {
-                payment.markAsFailed(result.failureReason());
+                processing.markAsFailed(result.failureReason());
                 log.warn("Payment {} failed. Reason: {}",
-                        payment.getId(), result.failureReason());
+                        processing.getId(), result.failureReason());
             }
 
-        } catch (Exception e) {
-            log.error("Error processing payment {}", payment.getId(), e);
-            payment.markAsFailed("Gateway error: " + e.getMessage());
+        } catch (TimeoutException | InterruptedException e){
+            log.error("Payment {} interrupted out", payment.getId());
+            payment.markAsFailed("Payment processing interrrupted");
+        } catch (ExecutionException e){
+            log.error("Payment {} timed out", payment.getId());
+            payment.markAsFailed("Payment gateway timeout");
+        }
+        catch (Exception e) {
+            log.error("Error processing payment {}", processing.getId(), e);
+            processing.markAsFailed("Gateway error: " + e.getMessage());
         }
 
-        return paymentRepository.save(payment);
+        return paymentRepository.save(processing);
+    }
+
+    private <T> T executeWithTimeout(Callable<T> callable) throws ExecutionException, InterruptedException, TimeoutException {
+        Future<T> future = executorService.submit(callable);
+        try {
+           return future.get(GATEWAY_TIMEOUT, TimeUnit.SECONDS);
+        } catch (TimeoutException | InterruptedException | ExecutionException e) {
+            future.cancel(true);
+            throw e;
+        }
     }
 
     @Override
