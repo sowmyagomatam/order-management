@@ -89,7 +89,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Optional<Payment> getPaymentByOrderId(String orderId) {
+    public Optional<Payment> findByOrderId(String orderId) {
         return paymentRepository.findByOrderId(orderId);
     }
 }

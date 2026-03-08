@@ -35,6 +35,6 @@ public interface PaymentService {
      * @return Payment if found
      * @throws PaymentNotFoundException if not found
      */
-   Optional<Payment> getPaymentByOrderId(String orderId);
+   Optional<Payment> findByOrderId(String orderId);
 
 }
