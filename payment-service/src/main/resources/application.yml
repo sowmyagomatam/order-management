@@ -15,3 +15,9 @@ logging:
   level:
     com.ecommerce.order: debug
     org.springframework.web: info
+
+payment:
+  executor:
+    pool-size: 10  # Number of concurrent payment processing threads
+  gateway:
+    timeout-seconds: 10
