@@ -1,4 +1,4 @@
-package com.ecommerce.order.config;
+package com.ecommerce.payment.config;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -12,33 +12,45 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class KafkaTopicConfig {
-
-    public static final String ORDERS_CREATED_TOPIC = "orders.created";
+public class PaymentTopicConfig {
+    public static final String PAYMENT_COMPLETED_TOPIC = "payment.completed";
+    public static final String PAYMENT_FAILED_TOPIC = "payment.failed";
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
-   /* @Bean
+  /*  @Bean
     public KafkaAdmin kafkaAdmin() {
         Map<String, Object> configs = new HashMap<>();
         configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         return new KafkaAdmin(configs);
     }
 
-    */
+   */
 
     /**
-     * Topic: orders.created
-     * Published when a new order is created
+     * Topic: payment.completed
+     * Published when payment is successfully processed
+     * Consumed by: order-service
      */
     @Bean
-    public NewTopic ordersCreatedTopic() {
-        return TopicBuilder.name(ORDERS_CREATED_TOPIC)
+    public NewTopic paymentCompletedTopic() {
+        return TopicBuilder.name(PAYMENT_COMPLETED_TOPIC)
                 .partitions(3)
                 .replicas(1)
                 .build();
     }
 
-
+    /**
+     * Topic: payment.failed
+     * Published when payment processing fails
+     * Consumed by: order-service, inventory-service
+     */
+    @Bean
+    public NewTopic paymentFailedTopic() {
+        return TopicBuilder.name(PAYMENT_FAILED_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
 }
