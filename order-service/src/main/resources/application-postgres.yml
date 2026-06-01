@@ -4,9 +4,9 @@ spring:
       on-profile: postgres
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/orderdb
-    username: orderuser
-    password: orderpass
+    url: jdbc:postgresql://localhost:5433/order_db
+    username: postgres
+    password: postgres
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10

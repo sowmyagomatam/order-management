@@ -21,6 +21,7 @@
         <module>inventory-service</module>
         <module>common</module>
         <module>events</module>
+        <module>payment-service</module>
     </modules>
     <packaging>pom</packaging>
 

@@ -1,6 +1,9 @@
 package com.ecommerce.events.inventory;
 
-public record ReservedItemEvent(   String productId,
-                                   String productSku,
-                                   Integer quantityReserved) {
+import java.math.BigDecimal;
+
+public record ReservedItemEvent(String productId,
+                                String productSku,
+                                BigDecimal price,
+                                Integer quantityReserved) {
 }

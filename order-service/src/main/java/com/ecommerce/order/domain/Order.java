@@ -28,12 +28,12 @@ public class Order {
     private String customerId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name="order_status", nullable = false)
+    @Column(name="status", nullable = false)
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "order_id")
+    @JoinColumn(name = "order_id", nullable = false)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 
@@ -42,7 +42,7 @@ public class Order {
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "street", column = @Column(name = "shipping_address")),
+        @AttributeOverride(name = "street", column = @Column(name = "shipping_street")),
         @AttributeOverride(name = "city", column = @Column(name = "shipping_city")),
         @AttributeOverride(name = "state", column = @Column(name = "shipping_state")),
         @AttributeOverride(name = "zipCode", column = @Column(name = "shipping_zip_code")),
@@ -53,7 +53,7 @@ public class Order {
 
     @Embedded
     @AttributeOverrides({
-            @AttributeOverride(name = "street", column = @Column(name = "billing_address")),
+            @AttributeOverride(name = "street", column = @Column(name = "billing_street")),
             @AttributeOverride(name = "city", column = @Column(name = "billing_city")),
             @AttributeOverride(name = "state", column = @Column(name = "billing_state")),
             @AttributeOverride(name = "zipCode", column = @Column(name = "billing_zip_code")),

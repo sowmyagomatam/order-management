@@ -20,6 +20,6 @@ CREATE INDEX idx_products_created_at ON products(created_at);
 
 -- Comments for documentation
 COMMENT ON TABLE products IS 'Main products table with inventory management';
-COMMENT ON COLUMN products.id IS 'UUID primary key';
+COMMENT ON COLUMN products.product_id IS 'UUID primary key';
 COMMENT ON COLUMN products.available_quantity IS 'Quantity available for new orders';
 COMMENT ON COLUMN products.reserved_quantity IS 'Quantity reserved for pending orders';
