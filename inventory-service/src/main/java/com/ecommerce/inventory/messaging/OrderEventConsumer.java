@@ -53,6 +53,7 @@ public class OrderEventConsumer {
                     reservedItems.add(new ReservedItemEvent(
                             item.productId(),
                             item.productSku(),
+                            item.unitPrice(),
                             item.quantity()
                     ));
                     log.info("Successfully reserved {} units of product: {} for order: {}",

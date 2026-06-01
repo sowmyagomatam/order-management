@@ -1,12 +1,16 @@
 package com.ecommerce.events.payment;
 
+import com.ecommerce.events.order.OrderItemEvent;
+
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record PaymentFailedEvent(String paymentId,
                                  String orderId,
                                  BigDecimal amount,
                                  String failureReason,
+                                 List<OrderItemEvent> orderItems,
                                  Instant timestamp
 ) {
     public PaymentFailedEvent{

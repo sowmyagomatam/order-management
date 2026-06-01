@@ -6,6 +6,10 @@ spring:
     properties:
       format-sql: true
     open-in-view: false
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order-service
 
 
 server:

@@ -2,6 +2,7 @@ package com.ecommerce.common.exception;
 
 import com.ecommerce.common.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.time.Instant;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 public abstract class BaseExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -33,7 +34,8 @@ public abstract class BaseExceptionHandler {
     public ResponseEntity<ErrorResponse> genericHandler(Exception e,
                                                         HttpServletRequest req){
 
-       ErrorResponse errorResponse =  createErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+        log.error("Unexpected error", e);
+        ErrorResponse errorResponse =  createErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal server error",
                 "An unexpected error occured",
                 req.getRequestURI());
