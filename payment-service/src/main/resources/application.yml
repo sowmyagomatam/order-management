@@ -33,3 +33,4 @@ payment:
     pool-size: 10  # Number of concurrent payment processing threads
   gateway:
     timeout-seconds: 10
+    success-rate-percent: 100

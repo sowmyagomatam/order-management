@@ -4,6 +4,7 @@ import com.ecommerce.events.inventory.InventoryReservationFailedEvent;
 import com.ecommerce.events.inventory.InventoryReservedEvent;
 import com.ecommerce.events.payment.PaymentCompletedEvent;
 import com.ecommerce.events.payment.PaymentFailedEvent;
+import com.ecommerce.events.payment.PaymentProcessingEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,17 @@ public class PaymentProducerConfig {
         props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
 
         return props;
+    }
+
+    @Bean
+    public ProducerFactory<String, PaymentProcessingEvent> paymentProcessingEventProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfigs());
+    }
+
+    @Bean
+    public KafkaTemplate<String, PaymentProcessingEvent> paymentProcessingEventKafkaTemplate(
+            ProducerFactory<String, PaymentProcessingEvent> paymentProcessingEventProducerFactory) {
+        return new KafkaTemplate<>(paymentProcessingEventProducerFactory);
     }
 
     @Bean

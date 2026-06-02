@@ -2,6 +2,7 @@ package com.ecommerce.payment.messaging;
 
 import com.ecommerce.events.payment.PaymentCompletedEvent;
 import com.ecommerce.events.payment.PaymentFailedEvent;
+import com.ecommerce.events.payment.PaymentProcessingEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -11,11 +12,31 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @RequiredArgsConstructor
 public class PaymentEventProducer {
+    private static final String PAYMENT_PROCESSING_TOPIC = "payment.processing";
     private static final String PAYMENT_COMPLETED_TOPIC = "payment.completed";
     private static final String PAYMENT_FAILED_TOPIC = "payment.failed";
 
+    private final KafkaTemplate<String, PaymentProcessingEvent> paymentProcessingEventKafkaTemplate;
     private final KafkaTemplate<String, PaymentCompletedEvent> paymentCompletedEventKafkaTemplate;
     private final KafkaTemplate<String, PaymentFailedEvent> paymentFailedEventKafkaTemplate;
+
+    public void publishPaymentProcessing(PaymentProcessingEvent event) {
+        log.info("Publishing PaymentProcessingEvent for order: {}, payment: {}",
+                event.orderId(), event.paymentId());
+
+        paymentProcessingEventKafkaTemplate.send(PAYMENT_PROCESSING_TOPIC, event.orderId(), event)
+                .whenComplete((result, ex) -> {
+                    if (ex == null) {
+                        log.info("PaymentProcessingEvent published successfully for order: {}, partition: {}, offset: {}",
+                                event.orderId(),
+                                result.getRecordMetadata().partition(),
+                                result.getRecordMetadata().offset());
+                    } else {
+                        log.error("Failed to publish PaymentProcessingEvent for order: {}",
+                                event.orderId(), ex);
+                    }
+                });
+    }
 
     /**
      * Publish payment completed event

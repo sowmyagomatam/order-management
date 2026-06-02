@@ -3,6 +3,7 @@ package com.ecommerce.payment.external;
 import com.ecommerce.payment.domain.PaymentMethod;
 import com.ecommerce.payment.exception.PaymentServiceException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -16,13 +17,15 @@ public class MockPaymentGateway implements PaymentGateway {
 
     private static final int MIN_DELAY_MS = 1000;
     private static final int MAX_ADDITIONAL_DELAY_MS = 2000;
-    private static final int SUCCESS_RATE_PERCENT = 90;
+
     private final String[] FAILURE_REASONS = new String[]{
             "Insufficient funds",
             "Card declined",
             "Payment gateway timeout",
             "Invalid card number"
     };
+    @Value("${payment.gateway.success-rate-percent:90}")
+    private int successRatePercent;
 
     /**
      * Simulates a payment process
@@ -59,7 +62,7 @@ public class MockPaymentGateway implements PaymentGateway {
         // Random number 0-99
         int random = ThreadLocalRandom.current().nextInt(100);
 
-        if (random < SUCCESS_RATE_PERCENT) {
+        if (random < successRatePercent) {
             // Success (90% of the time)
             String reference = generatePaymentReference();
             log.info("Payment succeeded: reference={}", reference);
