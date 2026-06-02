@@ -265,36 +265,46 @@ The decisions below were made deliberately; each carries a cost that was weighed
 **Decision:** services react to events rather than being driven by a central orchestrator.
 **Trade-off:** maximal decoupling and no single point of coordination — but the workflow is *implicit*, spread across consumers. There is no one place to read the whole saga. As the flow grows, an orchestrated saga (e.g. a state-machine service) would become easier to reason about. For a 3-step flow, choreography is the right weight.
 
-### 2. Command pattern at the service boundary
-**Decision:** services accept domain commands (`CreatePaymentCommand`, `ProcessPaymentCommand`), never transport DTOs. 
+### 2. Command pattern at the service boundary (payment-service standard)
+**Decision:** `payment-service` accepts domain commands (`CreatePaymentCommand`, `ProcessPaymentCommand`), never transport DTOs.
 Controllers and Kafka consumers both translate their input into the same commands.
-**Trade-off:** one extra translation layer, but the service API is identical whether invoked by REST or by an event. 
-Adapters stay thin and the core stays transport-agnostic.
 
-### 3. Services return entities; controllers map to DTOs
-**Decision:** no DTOs appear in service method signatures. Repository finders return `Optional<T>` and let the caller decide whether absence is an error.
-**Trade-off:** keeps mapping concerns at the edge, but means callers must consciously handle `Optional`. Chosen over services throwing `NotFound` so the same method serves both "must exist" and "may exist" call sites.
+**Why:** payment is the one service with *two* entry points for the same operation — a REST `PaymentRequest` and an inbound `inventory.reserved` event. Taking transport DTOs directly would force a choice between duplicating the processing logic per adapter or letting one adapter fabricate the other's DTO, and it would leak HTTP/Kafka types into the domain. A command is a transport-neutral intent object: both adapters map to it, the service exposes a single signature regardless of caller, and the business logic stays independently testable without standing up a controller or a consumer.
+
+**Trade-off:** one extra translation layer, but the service API is identical whether invoked by REST or by an event — adapters stay thin and the core stays transport-agnostic.
+This is the current target pattern, adopted while building the most recent service; `order-service` and `inventory-service` predate it and still take DTOs directly. Retrofitting them is a roadmap item.
+
+### 3. Services return entities; controllers map to DTOs (payment-service standard)
+**Decision:** in `payment-service`, no DTOs appear in service method signatures, and repository finders return `Optional<T>` so the caller decides whether absence is an error (e.g. `findByOrderId` → `Optional<Payment>`).
+
+**Trade-off:** keeps mapping concerns at the edge, but callers must consciously handle `Optional`. Chosen over services throwing `NotFound` so the same method serves both "must exist" and "may exist" call sites.
+As with the command pattern, this convention currently lives in `payment-service` only — the earlier two services return DTOs from the service layer.
 
 ### 4. Topic ownership by producer
 **Decision:** each service declares `NewTopic` beans only for topics it publishes. (The project originally had order-service own every topic — that was refactored out.)
+
 **Trade-off:** clear schema authority and no central topic registry, at the cost of having to look across services to see the full topic map (documented above to compensate).
 
 ### 5. No `KafkaAdmin` bean — topics auto-create at runtime
 **Decision:** topics are created from `NewTopic` beans on startup; no `KafkaAdmin`.
+
 **Trade-off:** removing `KafkaAdmin` eliminated long build delays caused by connection-retry loops during `mvn package`. 
 The cost is less explicit admin control over topic configuration — acceptable for this scope.
 
 ### 6. Timeout-guarded payment gateway via a managed `ExecutorService`
 **Decision:** the (mock) payment gateway call runs on a Spring-managed `ExecutorService` (`destroyMethod = "shutdown"`), wrapped in `Future.get(timeout, unit)` with cancellation on timeout.
 `ThreadLocalRandom` for the mock, and `InterruptedException` restores the interrupt flag.
+
 **Trade-off:** more moving parts than a blocking call, but a hung gateway cannot stall the saga. Chosen over `@Async` (too implicit for this control) and `ScheduledExecutorService` (wrong tool).
 
 ### 7. State validation on the entity, not the service
 **Decision:** `OrderStatus`/`PaymentStatus` enums own `canTransitionTo()`; entities reject invalid transitions.
+
 **Trade-off:** business rules live in the domain where they belong and can't be bypassed, at the cost of fatter enums.
 
 ### 8. Unidirectional `@OneToMany` with a non-null join column
 **Decision:** `Order.items` is a unidirectional `@OneToMany` + `@JoinColumn(name = "order_id", nullable = false)`; `OrderItem` has no back-reference.
+
 **Trade-off:** cleaner DDD aggregate (no bidirectional back-pointer), but `nullable = false` is **mandatory** — without it Hibernate inserts items with a null FK and then updates, violating the NOT NULL constraint.
 
 ### 9. Snapshot product data on `OrderItem`
@@ -304,6 +314,7 @@ even if the product later changes or is delisted. The reference is retained for 
 
 ### 10. `ddl-auto: validate` in all profiles
 **Decision:** Hibernate never generates schema; Flyway owns it, and Hibernate only validates against it.
+
 **Trade-off:** every schema change requires a migration (more ceremony), but entity/schema drift is caught at startup — it has already caught real column-name mismatches mid-project.
 
 ---
