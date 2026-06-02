@@ -4,6 +4,7 @@ import com.ecommerce.events.inventory.InventoryReservedEvent;
 import com.ecommerce.events.order.OrderItemEvent;
 import com.ecommerce.events.payment.PaymentCompletedEvent;
 import com.ecommerce.events.payment.PaymentFailedEvent;
+import com.ecommerce.events.payment.PaymentProcessingEvent;
 import com.ecommerce.payment.domain.Payment;
 import com.ecommerce.payment.domain.PaymentMethod;
 import com.ecommerce.payment.domain.PaymentStatus;
@@ -38,30 +39,42 @@ public class InventoryReservedEventConsumer {
     public void handleInventoryReservedEvent(InventoryReservedEvent event,
                                              Acknowledgment ack){
         log.info("Received InventoryReservedEvent for order: {}", event.orderId());
+        try {
 
-        //create a payment for this event
-        CreatePaymentCommand createPaymentCommand = CreatePaymentCommand.builder()
-                .orderId(event.orderId())
-                .amount(getAmount(event))
-                .paymentMethod(PaymentMethod.CREDIT_CARD)
-                .build();
-        Payment payment = paymentService.createPayment(createPaymentCommand);
-        log.info("Payment created: {} for order: {}", payment.getId(), event.orderId());
+            //create a payment for this event
+            CreatePaymentCommand createPaymentCommand = CreatePaymentCommand.builder()
+                    .orderId(event.orderId())
+                    .amount(getAmount(event))
+                    .paymentMethod(PaymentMethod.CREDIT_CARD)
+                    .build();
+            Payment payment = paymentService.createPayment(createPaymentCommand);
+            log.info("Payment created: {} for order: {}", payment.getId(), event.orderId());
 
-        //process payment
+            paymentEventProducer.publishPaymentProcessing(new PaymentProcessingEvent(
+                    payment.getId(), event.orderId(), Instant.now()
+            ));
 
-       Payment processedPayment =  paymentService.processPayment(ProcessPaymentCommand.builder()
-                       .paymentId(payment.getId())
-               .build());
-       log.info("Payment processed: {} with status: {}",
-                processedPayment.getId(), processedPayment.getPaymentStatus());
+            //process payment
+            Payment processedPayment = paymentService.processPayment(ProcessPaymentCommand.builder()
+                    .paymentId(payment.getId())
+                    .build());
+            log.info("Payment processed: {} with status: {}",
+                    processedPayment.getId(), processedPayment.getPaymentStatus());
 
-       //publish processed payment event
-        if(processedPayment.getPaymentStatus().equals(PaymentStatus.COMPLETED)){
-            publishPaymentCompleted(processedPayment, event);
-        } else {
-            publishPaymentFailed(processedPayment, event);
-        }
+            //publish processed payment event
+            if (processedPayment.getPaymentStatus().equals(PaymentStatus.COMPLETED)) {
+                publishPaymentCompleted(processedPayment, event);
+            } else {
+                publishPaymentFailed(processedPayment, event);
+            }
+            if(ack != null){
+                ack.acknowledge();
+            }
+        } catch (Exception e) {
+        log.error("Error processing InventoryReservationFailedEvent in payments for order: {}",
+                event.orderId(), e);
+        // Don't acknowledge - will retry
+    }
 
 
 

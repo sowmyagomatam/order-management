@@ -13,6 +13,7 @@ import java.util.Map;
 
 @Configuration
 public class PaymentTopicConfig {
+    public static final String PAYMENT_PROCESSING_TOPIC = "payment.processing";
     public static final String PAYMENT_COMPLETED_TOPIC = "payment.completed";
     public static final String PAYMENT_FAILED_TOPIC = "payment.failed";
 
@@ -27,6 +28,19 @@ public class PaymentTopicConfig {
     }
 
    */
+
+    /**
+     * Topic: payment.processing
+     * Published when payment gateway processing begins
+     * Consumed by: order-service
+     */
+    @Bean
+    public NewTopic paymentProcessingTopic() {
+        return TopicBuilder.name(PAYMENT_PROCESSING_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
 
     /**
      * Topic: payment.completed
