@@ -2,9 +2,11 @@ package com.ecommerce.order.messaging;
 
 import com.ecommerce.events.inventory.InventoryReservationFailedEvent;
 import com.ecommerce.events.inventory.InventoryReservedEvent;
+import com.ecommerce.events.order.OrderCancelledEvent;
 import com.ecommerce.order.domain.CancellationReason;
 import com.ecommerce.order.domain.Order;
 import com.ecommerce.order.domain.OrderStatus;
+import com.ecommerce.order.mapper.OrderItemEventMapper;
 import com.ecommerce.order.repository.OrderRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,8 @@ import org.springframework.stereotype.Component;
 public class InventoryEventConsumer {
 
     private final OrderRepository orderRepository;
+    private final OrderEventProducer orderEventProducer;
+    private final OrderItemEventMapper orderItemEventMapper;
 
     /**
      * Handle successful inventory reservation
@@ -94,7 +98,15 @@ public class InventoryEventConsumer {
         try {
             // Find the order
            orderRepository.findById(event.orderId())
-                   .ifPresentOrElse(order -> confirmInventoryReservationFailed(event, order),
+                   .ifPresentOrElse(order -> {
+                               confirmInventoryReservationFailed(event, order);
+                               //publish order cancelled event since the inventory is out of stock
+                               orderEventProducer.publishOrderCancelledEvent(OrderCancelledEvent.builder()
+                                       .orderId(event.orderId())
+                                       .items(orderItemEventMapper.toOrderItemEventList(order.getItems()))
+                                       .reason(CancellationReason.OUT_OF_STOCK.name())
+                                       .build());
+                           },
                            () ->  handleMissingOrder(event.orderId()));
 
 

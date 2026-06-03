@@ -15,6 +15,7 @@ import java.util.Map;
 public class KafkaTopicConfig {
 
     public static final String ORDERS_CREATED_TOPIC = "orders.created";
+    public static final String ORDERS_CANCELLED_TOPIC = "orders.cancelled";
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
@@ -35,6 +36,19 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic ordersCreatedTopic() {
         return TopicBuilder.name(ORDERS_CREATED_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    /**
+     * Topic: orders.cancelled
+     * Published when an order is cancelled
+     * @return
+     */
+    @Bean
+    public NewTopic ordersCancelledTopic() {
+        return TopicBuilder.name(ORDERS_CANCELLED_TOPIC)
                 .partitions(3)
                 .replicas(1)
                 .build();
