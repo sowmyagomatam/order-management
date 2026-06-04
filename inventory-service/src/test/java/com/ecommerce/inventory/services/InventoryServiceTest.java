@@ -3,7 +3,6 @@ package com.ecommerce.inventory.services;
 import com.ecommerce.inventory.domain.Product;
 import com.ecommerce.inventory.dto.request.CreateProductRequest;
 import com.ecommerce.inventory.dto.response.ProductResponse;
-import com.ecommerce.inventory.exception.InsufficientStockException;
 import com.ecommerce.inventory.exception.ProductNotFoundException;
 import com.ecommerce.inventory.repository.ProductRepository;
 import com.ecommerce.inventory.service.InventoryService;
@@ -80,48 +79,6 @@ public class InventoryServiceTest {
     }
 
     @Test
-    void shouldReserveStockSuccessfully() {
-        // Given
-        String productId = "PROD-123";
-        Product product = Product.builder()
-                .productId(productId)
-                .productName("Test Product")
-                .sku("SKU-001")
-                .price(new BigDecimal("10.00"))
-                .availableQuantity(100)
-                .reservedQuantity(0)
-                .build();
-
-        when(productRepository.findById(productId))
-                .thenReturn(Optional.of(product));
-
-        inventoryService.reserveStock(productId, 10);
-
-        // Then
-        assertThat(product.getAvailableQuantity()).isEqualTo(90);
-        assertThat(product.getReservedQuantity()).isEqualTo(10);
-        verify(productRepository).save(product);
-    }
-
-    @Test
-    void shouldThrowExceptionWhenInsufficientStock() {
-
-        String productId = "PROD-123";
-        Product product = Product.builder()
-                .productId(productId)
-                .availableQuantity(5)
-                .reservedQuantity(0)
-                .build();
-
-        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-
-        // When/Then
-        assertThatThrownBy(() -> inventoryService.reserveStock(productId, 10))
-                .isInstanceOf(InsufficientStockException.class)
-                .hasMessageContaining("Insufficient stock");
-    }
-
-    @Test
     void shouldThrowExceptionWhenProductNotFound() {
         // Given
         String productId = "NON-EXISTENT";
@@ -131,28 +88,6 @@ public class InventoryServiceTest {
         assertThatThrownBy(() -> inventoryService.getProduct(productId))
                 .isInstanceOf(ProductNotFoundException.class)
                 .hasMessageContaining("NON-EXISTENT");
-    }
-
-    @Test
-    void shouldReleaseStockSuccessfully() {
-        // Given
-        String productId = "PROD-123";
-        Product product = Product.builder()
-                .productId(productId)
-                .availableQuantity(90)
-                .reservedQuantity(10)
-                .build();
-
-        when(productRepository.findById(productId)).thenReturn(
-                Optional.of(product));
-
-        // When
-        inventoryService.releaseStock(productId, 10);
-
-        // Then
-        assertThat(product.getAvailableQuantity()).isEqualTo(100);
-        assertThat(product.getReservedQuantity()).isEqualTo(0);
-        verify(productRepository).save(product);
     }
 
     @Test

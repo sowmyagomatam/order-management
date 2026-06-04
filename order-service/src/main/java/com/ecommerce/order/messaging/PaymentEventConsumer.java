@@ -1,6 +1,7 @@
 package com.ecommerce.order.messaging;
 
 import com.ecommerce.events.order.OrderCancelledEvent;
+import com.ecommerce.events.order.OrderConfirmedEvent;
 import com.ecommerce.events.payment.PaymentCompletedEvent;
 import com.ecommerce.events.payment.PaymentFailedEvent;
 import com.ecommerce.events.payment.PaymentProcessingEvent;
@@ -84,6 +85,11 @@ public class PaymentEventConsumer {
                         order.updateStatus(OrderStatus.PAYMENT_COMPLETED);
                         order.updateStatus(OrderStatus.CONFIRMED);
                         orderRepository.save(order);
+                        //publish order confirmed event so inventory can confirm the reservation
+                        orderEventProducer.publishOrderConfirmedEvent(OrderConfirmedEvent.builder()
+                                .orderId(event.orderId())
+                                .items(orderItemEventMapper.toOrderItemEventList(order.getItems()))
+                                .build());
                         log.info("Order {} confirmed", order.getId());
                     },
                     () -> log.warn("Order {} not found", event.orderId())
