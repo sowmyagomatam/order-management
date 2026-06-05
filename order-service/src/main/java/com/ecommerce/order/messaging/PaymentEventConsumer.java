@@ -1,10 +1,13 @@
 package com.ecommerce.order.messaging;
 
+import com.ecommerce.events.order.OrderCancelledEvent;
+import com.ecommerce.events.order.OrderConfirmedEvent;
 import com.ecommerce.events.payment.PaymentCompletedEvent;
 import com.ecommerce.events.payment.PaymentFailedEvent;
 import com.ecommerce.events.payment.PaymentProcessingEvent;
 import com.ecommerce.order.domain.CancellationReason;
 import com.ecommerce.order.domain.OrderStatus;
+import com.ecommerce.order.mapper.OrderItemEventMapper;
 import com.ecommerce.order.repository.OrderRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PaymentEventConsumer {
     private final OrderRepository orderRepository;
+    private final OrderEventProducer orderEventProducer;
+    private final OrderItemEventMapper orderItemEventMapper;
 
     @KafkaListener(
             topics = "payment.processing",
@@ -80,6 +85,11 @@ public class PaymentEventConsumer {
                         order.updateStatus(OrderStatus.PAYMENT_COMPLETED);
                         order.updateStatus(OrderStatus.CONFIRMED);
                         orderRepository.save(order);
+                        //publish order confirmed event so inventory can confirm the reservation
+                        orderEventProducer.publishOrderConfirmedEvent(OrderConfirmedEvent.builder()
+                                .orderId(event.orderId())
+                                .items(orderItemEventMapper.toOrderItemEventList(order.getItems()))
+                                .build());
                         log.info("Order {} confirmed", order.getId());
                     },
                     () -> log.warn("Order {} not found", event.orderId())
@@ -124,10 +134,17 @@ public class PaymentEventConsumer {
                     order -> {
                         order.cancel(CancellationReason.PAYMENT_FAILED, "System");
                         orderRepository.save(order);
+                        //publish order cancelled event since the payment failed
+                        orderEventProducer.publishOrderCancelledEvent(OrderCancelledEvent.builder()
+                                .orderId(event.orderId())
+                                .items(orderItemEventMapper.toOrderItemEventList(order.getItems()))
+                                 .reason(CancellationReason.PAYMENT_FAILED.name())
+                                .build());
                         log.info("Order {} cancelled (payment failed)", order.getId());
                     },
                     () -> log.warn("Order {} not found", event.orderId())
             );
+
 
             if (acknowledgment != null) {
                 acknowledgment.acknowledge();

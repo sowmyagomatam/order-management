@@ -59,6 +59,10 @@ flowchart LR
     K -->|payment.completed / failed| OS
     K -->|inventory.reservation-failed| OS
 
+    OS -->|orders.cancelled| K
+    OS -->|orders.confirmed| K
+    K -->|orders.cancelled / confirmed| IS
+
     OS --- ODB[(order_db)]
     IS --- IDB[(inventory_db)]
     PS --- PDB[(payment_db)]
@@ -96,14 +100,19 @@ sequenceDiagram
         alt Payment succeeds (~90%)
             P-->>O: payment.completed
             O->>O: status = PAYMENT_COMPLETED → CONFIRMED
+            O-->>I: orders.confirmed
+            I->>I: confirm reservation (draw down reserved stock)
         else Payment fails / times out
             P-->>O: payment.failed
             O->>O: cancel(PAYMENT_FAILED)
-            Note over I: Roadmap: release reserved stock
+            O-->>I: orders.cancelled
+            I->>I: release reserved stock back to available
         end
     else Out of stock
         I-->>O: inventory.reservation-failed
-        O->>O: cancel(INVENTORY_UNAVAILABLE)
+        O->>O: cancel(OUT_OF_STOCK)
+        O-->>I: orders.cancelled
+        Note over I: no reservation rows exist → safe no-op
     end
 ```
 
@@ -161,6 +170,8 @@ exception/     Service-specific handlers
 | Topic | Owner / Producer | Consumers |
 |---|---|---|
 | `orders.created` | order-service | inventory-service |
+| `orders.cancelled` | order-service | inventory-service |
+| `orders.confirmed` | order-service | inventory-service |
 | `inventory.reserved` | inventory-service | payment-service, order-service |
 | `inventory.reservation-failed` | inventory-service | order-service |
 | `payment.processing` | payment-service | order-service |
@@ -317,13 +328,19 @@ even if the product later changes or is delisted. The reference is retained for 
 
 **Trade-off:** every schema change requires a migration (more ceremony), but entity/schema drift is caught at startup — it has already caught real column-name mismatches mid-project.
 
+### 11. Reservation ledger as the source of truth for compensation
+**Decision:** inventory-service records a `reservations` row (`RESERVED → RELEASED | CONFIRMED`) per order item rather than driving compensation off the reserved-quantity counter alone. Stock reservation is **all-or-nothing and two-phase**: every item is validated with no mutation, and only if all pass are reservations made and rows written — so rows exist solely for fully-reserved orders. Release and confirm act only on `RESERVED` rows.
+
+**Why:** the `orders.cancelled` event already carries its items, so release *could* be driven straight off the event — but Kafka redelivery would then double-release stock. Reconciling against the ledger makes compensation **idempotent** (a redelivered event finds no `RESERVED` rows and is a safe no-op) and gives each order an auditable reservation history. The two-phase reserve avoids a partial-mutation leak where items reserved before a failing item would otherwise be stranded with no row to release.
+
+**Trade-off:** an extra table and the bookkeeping to keep it in step with the product counters, in exchange for a compensation path that is correct under redelivery — the property that matters most in a choreography saga.
+
 ---
 
 ## Known Limitations
 
 Stated honestly — these are the gaps an experienced reviewer would (rightly) ask about.
 
-- **No compensating transaction for stock yet.** When a payment fails, the order is cancelled but the inventory-service does **not** yet release the reserved stock — reserved quantity leaks. This is the next roadmap item (Phase 5) and the most important correctness gap.
 - **Dual-write between DB and Kafka.** Events are published after the local transaction commits, inside a try/catch. If the publish fails, the DB state and the event stream diverge. The fix is the **transactional outbox pattern** (on the roadmap).
 - **No dead-letter queue.** A consistently failing message is retried indefinitely rather than parked. Poison messages need a DLQ + retry-with-backoff topology.
 - **Uneven test coverage.** order- and inventory-service have unit and repository tests; payment-service — the most logic-heavy service — currently has none.
@@ -335,7 +352,7 @@ Stated honestly — these are the gaps an experienced reviewer would (rightly) a
 ## Roadmap
 
 **Near term — correctness & completeness**
-- [ ] **Compensating action** — inventory-service consumes `payment.failed` and releases reserved stock (`releaseStock(productId, qty)`), closing the saga's failure path.
+- [x] **Compensating action** — inventory-service reconciles a per-order reservation ledger: it consumes `orders.cancelled` to release reserved stock back to available, and `orders.confirmed` to draw down reserved stock on fulfilment. Both are idempotent (only `RESERVED` rows are acted on), closing the saga's failure and success paths.
 - [ ] **Payment-service test suite** — unit + integration coverage for timeout, idempotency, and the async gateway path.
 - [ ] **Transactional outbox** — eliminate the dual-write problem; publish events from a DB-backed outbox via a relay/CDC.
 

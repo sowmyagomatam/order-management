@@ -1,5 +1,7 @@
 package com.ecommerce.order.config;
 
+import com.ecommerce.events.order.OrderCancelledEvent;
+import com.ecommerce.events.order.OrderConfirmedEvent;
 import com.ecommerce.events.order.OrderCreatedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -34,6 +36,28 @@ public class OrderProducerConfig {
     public KafkaTemplate<String, OrderCreatedEvent> orderEventKafkaTemplate(
             ProducerFactory<String, OrderCreatedEvent> orderEventProducerFactory) {
         return new KafkaTemplate<>(orderEventProducerFactory);
+    }
+
+    @Bean
+    public ProducerFactory<String, OrderCancelledEvent> orderCancelledEventProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfigs());
+    }
+
+    @Bean
+    public KafkaTemplate<String, OrderCancelledEvent> orderCancelledEventKafkaTemplate(
+            ProducerFactory<String, OrderCancelledEvent> orderCancelledEventProducerFactory) {
+        return new KafkaTemplate<>(orderCancelledEventProducerFactory);
+    }
+
+    @Bean
+    public ProducerFactory<String, OrderConfirmedEvent> orderConfirmedEventProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfigs());
+    }
+
+    @Bean
+    public KafkaTemplate<String, OrderConfirmedEvent> orderConfirmedEventKafkaTemplate(
+            ProducerFactory<String, OrderConfirmedEvent> orderConfirmedEventProducerFactory) {
+        return new KafkaTemplate<>(orderConfirmedEventProducerFactory);
     }
 
     private Map<String, Object> producerConfigs() {

@@ -1,9 +1,7 @@
 package com.ecommerce.inventory.controller;
 
 import com.ecommerce.inventory.dto.request.CreateProductRequest;
-import com.ecommerce.inventory.dto.request.ReserveStockRequest;
 import com.ecommerce.inventory.dto.response.ProductResponse;
-import com.ecommerce.inventory.exception.InsufficientStockException;
 import com.ecommerce.inventory.exception.ProductNotFoundException;
 import com.ecommerce.inventory.service.InventoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -136,51 +134,6 @@ public class InventoryControllerTest {
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not found"))
                 .andExpect(jsonPath("$.message").value("Product not found with id: " + productId));
-    }
-
-    @Test
-    void shouldReserveStock_Successfully() throws Exception {
-        // Given
-        ReserveStockRequest request = ReserveStockRequest.builder()
-                .quantity(10)
-                .orderId("ORDER-456")
-                .build();
-
-        doNothing().when(inventoryService).reserveStock(PRODUCT_ID, 10);
-
-        // When/Then
-        mockMvc.perform(post("/api/inventory/products/{id}/reserve", PRODUCT_ID)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isOk());
-
-        verify(inventoryService, times(1)).reserveStock(PRODUCT_ID, 10);
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenInsufficientStock() throws Exception {
-        // Given
-        String productId = "PROD-123";
-        int quantity = 100;
-        ReserveStockRequest request = ReserveStockRequest.builder()
-                .quantity(quantity)
-                .build();
-
-        int available = 5;
-        doThrow(new InsufficientStockException(productId, quantity, available))
-                .when(inventoryService).reserveStock(productId, quantity);
-
-        // When/Then
-        mockMvc.perform(post("/api/inventory/products/{id}/reserve", productId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.message").value(
-                        String.format("Insufficient stock for product %s: requested %d, available %d",
-                                productId, quantity, available)));
     }
 
     @Test

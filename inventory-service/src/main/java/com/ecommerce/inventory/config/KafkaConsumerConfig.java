@@ -1,5 +1,7 @@
 package com.ecommerce.inventory.config;
 
+import com.ecommerce.events.order.OrderCancelledEvent;
+import com.ecommerce.events.order.OrderConfirmedEvent;
 import com.ecommerce.events.order.OrderCreatedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -82,6 +84,78 @@ public class KafkaConsumerConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
 
         factory.setConsumerFactory(orderEventConsumerFactory);
+
+        // Concurrency - number of consumer threads
+        factory.setConcurrency(3);
+
+        // Manual acknowledgement mode for better control
+        factory.getContainerProperties().setAckMode(
+                org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL
+        );
+
+        return factory;
+    }
+
+    /**
+     * Consumer Factory for OrderCancelledEvent (inventory compensation)
+     */
+    @Bean
+    public ConsumerFactory<String, OrderCancelledEvent> orderCancelledEventConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(
+                consumerConfigs(),
+                new StringDeserializer(),
+                new JsonDeserializer<>(OrderCancelledEvent.class, false)
+        );
+    }
+
+    /**
+     * Kafka Listener Container Factory for OrderCancelledEvent
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, OrderCancelledEvent>
+    orderCancelledEventKafkaListenerContainerFactory(
+            ConsumerFactory<String, OrderCancelledEvent> orderCancelledEventConsumerFactory) {
+
+        ConcurrentKafkaListenerContainerFactory<String, OrderCancelledEvent> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+
+        factory.setConsumerFactory(orderCancelledEventConsumerFactory);
+
+        // Concurrency - number of consumer threads
+        factory.setConcurrency(3);
+
+        // Manual acknowledgement mode for better control
+        factory.getContainerProperties().setAckMode(
+                org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL
+        );
+
+        return factory;
+    }
+
+    /**
+     * Consumer Factory for OrderConfirmedEvent (reservation confirmation)
+     */
+    @Bean
+    public ConsumerFactory<String, OrderConfirmedEvent> orderConfirmedEventConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(
+                consumerConfigs(),
+                new StringDeserializer(),
+                new JsonDeserializer<>(OrderConfirmedEvent.class, false)
+        );
+    }
+
+    /**
+     * Kafka Listener Container Factory for OrderConfirmedEvent
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, OrderConfirmedEvent>
+    orderConfirmedEventKafkaListenerContainerFactory(
+            ConsumerFactory<String, OrderConfirmedEvent> orderConfirmedEventConsumerFactory) {
+
+        ConcurrentKafkaListenerContainerFactory<String, OrderConfirmedEvent> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+
+        factory.setConsumerFactory(orderConfirmedEventConsumerFactory);
 
         // Concurrency - number of consumer threads
         factory.setConcurrency(3);

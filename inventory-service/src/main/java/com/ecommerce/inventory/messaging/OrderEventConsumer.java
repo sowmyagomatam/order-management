@@ -1,13 +1,11 @@
 package com.ecommerce.inventory.messaging;
 
-import com.ecommerce.events.inventory.FailedItemEvent;
 import com.ecommerce.events.inventory.InventoryReservationFailedEvent;
 import com.ecommerce.events.inventory.InventoryReservedEvent;
-import com.ecommerce.events.inventory.ReservedItemEvent;
+import com.ecommerce.events.order.OrderCancelledEvent;
+import com.ecommerce.events.order.OrderConfirmedEvent;
 import com.ecommerce.events.order.OrderCreatedEvent;
-import com.ecommerce.events.order.OrderItemEvent;
-import com.ecommerce.inventory.exception.InsufficientStockException;
-import com.ecommerce.inventory.exception.ProductNotFoundException;
+import com.ecommerce.inventory.dto.ReservationResult;
 import com.ecommerce.inventory.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +17,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Component
 @Slf4j
@@ -42,60 +38,12 @@ public class OrderEventConsumer {
     ){
         log.info("Received OrderCreatedEvent for order: {} from partition: {} offset: {}",
                 event.orderId(), partition, offset);
-        //reserve stock for this order
+        //reserve stock for this order (all-or-nothing)
         try {
-            List<ReservedItemEvent> reservedItems = new ArrayList<>();
-            List<FailedItemEvent> failedItems = new ArrayList<>();
-            for (OrderItemEvent item : event.items()) {
-                try {
-                    inventoryService.reserveStock(item.productId(), item.quantity());
+            ReservationResult result = inventoryService.reserveOrder(event.orderId(), event.items());
 
-                    reservedItems.add(new ReservedItemEvent(
-                            item.productId(),
-                            item.productSku(),
-                            item.unitPrice(),
-                            item.quantity()
-                    ));
-                    log.info("Successfully reserved {} units of product: {} for order: {}",
-                            item.quantity(), item.productId(), event.orderId());
-
-                } catch(ProductNotFoundException e) {
-                    log.error("Product not found: {} for order: {}. Item will be skipped.",
-                            item.productId(), event.orderId(), e);
-                    failedItems.add(new FailedItemEvent(
-                            item.productId(),
-                            item.productSku(),
-                            item.quantity(),
-                            0,
-                            "Product not found"
-                    ));
-
-                }catch (InsufficientStockException e) {
-                    log.error("Insufficient stock for product: {} (requested: {}) for order: {}. Item will be skipped.",
-                            item.productId(), item.quantity(), event.orderId(), e);
-                    failedItems.add(new FailedItemEvent(
-                            item.productId(),
-                            item.productSku(),
-                            item.quantity(),
-                            e.getAvailable(),
-                            String.format("Insufficient stock. Available: %d, Requested: %d",
-                                    e.getAvailable(), item.quantity())
-                    ));
-
-                } catch (Exception e) {
-                    log.error("Unexpected error reserving stock for product: {} in order: {}",
-                            item.productId(), event.orderId(), e);
-                    failedItems.add(new FailedItemEvent(
-                            item.productId(),
-                            item.productSku(),
-                            item.quantity(),
-                            0,
-                            "Unexpected error: " + e.getMessage()
-                    ));
-                }
-            }
             //Publish events
-            publishEvents(event, reservedItems, failedItems);
+            publishEvents(event, result);
             log.info("Completed processing OrderCreatedEvent for order: {}", event.orderId());
 
             if (acknowledgment != null) {
@@ -108,18 +56,74 @@ public class OrderEventConsumer {
         }
     }
 
-    private void publishEvents(OrderCreatedEvent event, List<ReservedItemEvent> reservedItems, List<FailedItemEvent> failedItems) {
-        if(!failedItems.isEmpty()){
+    @KafkaListener(
+            topics = "orders.cancelled",
+            groupId = "inventory-service",
+            containerFactory = "orderCancelledEventKafkaListenerContainerFactory"
+    )
+    public void handleOrderCancelled(
+            @Payload OrderCancelledEvent event,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment
+    ) {
+        log.info("Received OrderCancelledEvent for order: {} reason: {} from partition: {} offset: {}",
+                event.orderId(), event.reason(), partition, offset);
+        //release any stock reserved for this order
+        try {
+            inventoryService.releaseReservation(event.orderId());
+            log.info("Completed processing OrderCancelledEvent for order: {}", event.orderId());
+
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+                log.debug("Acknowledged OrderCancelledEvent for order: {}", event.orderId());
+            }
+        } catch (Exception e) {
+            log.error("Critical error releasing reservation for cancelled order: {}. Message will NOT be acknowledged.",
+                    event.orderId(), e);
+        }
+    }
+
+    @KafkaListener(
+            topics = "orders.confirmed",
+            groupId = "inventory-service",
+            containerFactory = "orderConfirmedEventKafkaListenerContainerFactory"
+    )
+    public void handleOrderConfirmed(
+            @Payload OrderConfirmedEvent event,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment
+    ) {
+        log.info("Received OrderConfirmedEvent for order: {} from partition: {} offset: {}",
+                event.orderId(), partition, offset);
+        //confirm the reservation for this fulfilled order
+        try {
+            inventoryService.confirmOrderReservations(event.orderId());
+            log.info("Completed processing OrderConfirmedEvent for order: {}", event.orderId());
+
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+                log.debug("Acknowledged OrderConfirmedEvent for order: {}", event.orderId());
+            }
+        } catch (Exception e) {
+            log.error("Critical error confirming reservation for fulfilled order: {}. Message will NOT be acknowledged.",
+                    event.orderId(), e);
+        }
+    }
+
+    private void publishEvents(OrderCreatedEvent event, ReservationResult result) {
+        if(!result.failedItems().isEmpty()){
             inventoryEventProducer.publishInventoryReservationFailed(
                     new InventoryReservationFailedEvent(event.orderId(),
-                            failedItems,
-                            String.format("%d of %d items failed reservation", failedItems.size(), event.items().size()),
+                            result.failedItems(),
+                            String.format("%d of %d items failed reservation", result.failedItems().size(), event.items().size()),
                             Instant.now())
             );
         } else {
             InventoryReservedEvent reservedEvent = new InventoryReservedEvent(
                     event.orderId(),
-                    reservedItems,
+                    result.reservedItems(),
                     Instant.now()
             );
             inventoryEventProducer.publishInventoryReservedEvent(reservedEvent);
