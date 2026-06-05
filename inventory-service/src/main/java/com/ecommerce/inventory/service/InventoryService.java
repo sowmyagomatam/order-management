@@ -90,22 +90,7 @@ public class InventoryService {
         }
 
         // Phase 1: validate all items, no mutation.
-        List<FailedItemEvent> failedItems = new ArrayList<>();
-        for (OrderItemEvent item : items) {
-            Optional<Product> productOpt = productRepository.findById(item.productId());
-            if (productOpt.isEmpty()) {
-                failedItems.add(new FailedItemEvent(
-                        item.productId(), item.productSku(), item.quantity(), 0, "Product not found"));
-                continue;
-            }
-            Product product = productOpt.get();
-            if (!product.isStockAvailable(item.quantity())) {
-                failedItems.add(new FailedItemEvent(
-                        item.productId(), item.productSku(), item.quantity(), product.getAvailableQuantity(),
-                        String.format("Insufficient stock. Available: %d, Requested: %d",
-                                product.getAvailableQuantity(), item.quantity())));
-            }
-        }
+        List<FailedItemEvent> failedItems = getFailedItemEvents(items);
 
         // All-or-nothing: any failure means we mutate nothing and persist nothing.
         if (!failedItems.isEmpty()) {
@@ -140,6 +125,26 @@ public class InventoryService {
 
         log.info("Reserved all {} items for order {}", items.size(), orderId);
         return new ReservationResult(reservedItems, List.of());
+    }
+
+    private List<FailedItemEvent> getFailedItemEvents(List<OrderItemEvent> items) {
+        List<FailedItemEvent> failedItems = new ArrayList<>();
+        for (OrderItemEvent item : items) {
+            Optional<Product> productOpt = productRepository.findById(item.productId());
+            if (productOpt.isEmpty()) {
+                failedItems.add(new FailedItemEvent(
+                        item.productId(), item.productSku(), item.quantity(), 0, "Product not found"));
+                continue;
+            }
+            Product product = productOpt.get();
+            if (!product.isStockAvailable(item.quantity())) {
+                failedItems.add(new FailedItemEvent(
+                        item.productId(), item.productSku(), item.quantity(), product.getAvailableQuantity(),
+                        String.format("Insufficient stock. Available: %d, Requested: %d",
+                                product.getAvailableQuantity(), item.quantity())));
+            }
+        }
+        return failedItems;
     }
 
     /**

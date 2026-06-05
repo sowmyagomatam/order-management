@@ -7,6 +7,8 @@ import com.ecommerce.order.dto.request.OrderItemRequest;
 import com.ecommerce.order.dto.request.OrderRequest;
 import com.ecommerce.order.dto.response.OrderResponse;
 import com.ecommerce.order.exception.OrderNotFoundException;
+import com.ecommerce.order.mapper.*;
+import com.ecommerce.order.messaging.OrderEventProducer;
 import com.ecommerce.order.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,11 +32,17 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
+@Import({ OrderService.class,
+        OrderMapperImpl.class, OrderItemMapperImpl.class, AddressMapperImpl.class,
+        OrderEventMapperImpl.class, OrderItemEventMapperImpl.class })
+
 public class OrderServiceTest {
     @MockBean
     OrderRepository orderRepository;
+
+    @MockBean
+    OrderEventProducer orderEventProducer;
 
     @Autowired
     private OrderService orderService;
